@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>패킹리스트 제작</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Pretendard',sans-serif;background:#f5f6f8;color:#1a1a1a;min-height:100vh}
+.header{background:#1a1a2e;padding:20px 32px;display:flex;align-items:center;gap:12px}
+.header-logo{width:36px;height:36px;background:linear-gradient(135deg,#4f8ef7,#a78bfa);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px}
+.main{max-width:1100px;margin:0 auto;padding:28px 20px}
+.form-card{background:#fff;border-radius:14px;border:1px solid #e8eaf0;padding:28px;margin-bottom:20px}
+.form-card h2{font-size:15px;font-weight:600;color:#333;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.step-badge{background:#1a1a2e;color:#fff;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500}
+.selector-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:18px}
+.selector-group label{display:block;font-size:12px;color:#666;font-weight:500;margin-bottom:8px;letter-spacing:.3px}
+.chip-list{display:flex;flex-wrap:wrap;gap:6px;min-height:36px}
+.chip{padding:6px 12px;border-radius:20px;font-size:13px;cursor:pointer;border:1px solid #dde1eb;background:#f8f9fc;color:#444;transition:all .15s;user-select:none;white-space:nowrap}
+.chip:hover{border-color:#4f8ef7;color:#4f8ef7;background:#eef4ff}
+.chip.selected{background:#1a1a2e;color:#fff;border-color:#1a1a2e}
+.custom-input-row{display:flex;gap:8px;margin-top:8px}
+.custom-input-row input{flex:1;padding:7px 12px;border:1px solid #dde1eb;border-radius:8px;font-size:13px;font-family:inherit;outline:none;color:#333}
+.custom-input-row input:focus{border-color:#4f8ef7}
+.custom-input-row button{padding:7px 14px;background:#4f8ef7;color:#fff;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;white-space:nowrap}
+.custom-input-row button:hover{background:#3a7ee6}
+.qty-row{display:flex;align-items:center;gap:12px;margin-top:6px}
+.qty-row label{font-size:13px;color:#555;font-weight:500;white-space:nowrap}
+.qty-control{display:flex;align-items:center;border:1px solid #dde1eb;border-radius:8px;overflow:hidden}
+.qty-control button{width:32px;height:32px;border:none;background:#f5f6f8;cursor:pointer;font-size:16px;color:#444;transition:background .1s}
+.qty-control button:hover{background:#e8eaf0}
+.qty-control input{width:52px;height:32px;border:none;border-left:1px solid #dde1eb;border-right:1px solid #dde1eb;text-align:center;font-size:14px;font-weight:500;font-family:inherit;color:#1a1a2e;outline:none}
+.match-preview{margin-top:12px;padding:10px 14px;background:#f0f7ff;border:1px solid #c7dff7;border-radius:8px;font-size:13px;color:#1a4a7a;display:none}
+.match-preview.show{display:block}
+.match-preview .match-code{font-weight:600;color:#1a1a2e}
+.match-preview .no-match{color:#e05a2b}
+.add-btn{width:100%;padding:12px;background:#1a1a2e;color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;margin-top:16px}
+.add-btn:hover{background:#2d2d50}
+.add-btn:active{transform:scale(.99)}
+.summary-section{background:#fff;border-radius:14px;border:1px solid #e8eaf0;overflow:hidden}
+.summary-header{padding:18px 24px;border-bottom:1px solid #e8eaf0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.summary-header h2{font-size:15px;font-weight:600;color:#333}
+.count-badge{background:#eef4ff;color:#4f8ef7;font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px}
+.action-btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn-outline{padding:7px 16px;border:1px solid #dde1eb;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;color:#444;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:6px}
+.btn-outline:hover{border-color:#4f8ef7;color:#4f8ef7}
+.btn-danger-outline{padding:7px 16px;border:1px solid #fee2e2;background:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;color:#dc2626;font-weight:500;transition:all .15s}
+.btn-danger-outline:hover{background:#fef2f2}
+.btn-green{padding:7px 16px;border:none;background:#059669;color:#fff;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:500;display:flex;align-items:center;gap:6px}
+.btn-green:hover{background:#047857}
+.list-table{width:100%;border-collapse:collapse}
+.list-table th{background:#f8f9fc;font-size:12px;color:#888;font-weight:500;padding:10px 14px;text-align:left;border-bottom:1px solid #e8eaf0;white-space:nowrap}
+.list-table td{padding:10px 14px;font-size:13px;color:#333;border-bottom:1px solid #f0f2f7;vertical-align:middle}
+.list-table tr:last-child td{border-bottom:none}
+.list-table tr:hover td{background:#fafbfd}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:500}
+.tag-code{background:#fff3e0;color:#e65100;font-family:monospace;font-size:11px}
+.tag-barcode{background:#e8f5e9;color:#1b5e20;font-family:monospace;font-size:11px}
+.tag-category{background:#eff6ff;color:#1d4ed8}
+.tag-sub{background:#f0fdf4;color:#166534}
+.tag-color{background:#faf5ff;color:#6b21a8}
+.tag-size{background:#fff7ed;color:#9a3412}
+.tag-nomatch{background:#fef2f2;color:#b91c1c;font-size:11px}
+.del-btn{width:28px;height:28px;border:none;background:#fee2e2;color:#dc2626;border-radius:6px;cursor:pointer;font-size:13px;transition:background .15s;display:flex;align-items:center;justify-content:center}
+.del-btn:hover{background:#fecaca}
+.empty-state{padding:48px 24px;text-align:center;color:#aaa}
+.empty-state p{font-size:14px;margin-top:12px}
+.color-swatch{width:14px;height:14px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.12);vertical-align:middle;margin-right:4px}
+.toast{position:fixed;bottom:28px;right:28px;background:#1a1a2e;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;z-index:9999;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+@media(max-width:600px){
+  .selector-row{grid-template-columns:1fr}
+  .main{padding:16px}
+  .form-card{padding:18px}
+  .list-table th:nth-child(1),.list-table td:nth-child(1),.list-table th:nth-child(2),.list-table td:nth-child(2){display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">P</div>
+  <div>
+    <div style="color:#fff;font-size:18px;font-weight:600">패킹리스트 제작</div>
+    <div style="color:#8899bb;font-size:12px;margin-top:2px">항목을 선택하고 패킹리스트를 만드세요</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="form-card">
+    <h2><span class="step-badge">1</span> 항목 / 세부항목 선택</h2>
+    <div class="selector-row">
+      <div class="selector-group">
+        <label>항목</label>
+        <div class="chip-list" id="chips-category"></div>
+        <div class="custom-input-row">
+          <input type="text" id="custom-category" placeholder="직접 입력">
+          <button onclick="addCustom('category')">추가</button>
+        </div>
+      </div>
+      <div class="selector-group" id="sub-group" style="display:none">
+        <label>세부항목</label>
+        <div class="chip-list" id="chips-sub"></div>
+        <div class="custom-input-row">
+          <input type="text" id="custom-sub" placeholder="직접 입력">
+          <button onclick="addCustom('sub')">추가</button>
+        </div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:20px"><span class="step-badge">2</span> 색상 / 사이즈 선택</h2>
+    <div class="selector-row">
+      <div class="selector-group">
+        <label>색상</label>
+        <div class="chip-list" id="chips-color"></div>
+        <div class="custom-input-row">
+          <input type="text" id="custom-color" placeholder="직접 입력">
+          <button onclick="addCustom('color')">추가</button>
+        </div>
+      </div>
+      <div class="selector-group">
+        <label>사이즈</label>
+        <div class="chip-list" id="chips-size"></div>
+        <div class="custom-input-row">
+          <input type="text" id="custom-size" placeholder="직접 입력">
+          <button onclick="addCustom('size')">추가</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="match-preview" id="match-preview"></div>
+
+    <h2 style="margin-top:20px"><span class="step-badge">3</span> 수량 입력</h2>
+    <div class="qty-row">
+      <label>수량</label>
+      <div class="qty-control">
+        <button onclick="changeQty(-1)">−</button>
+        <input type="number" id="qty-input" value="1" min="1">
+        <button onclick="changeQty(1)">+</button>
+      </div>
+    </div>
+
+    <button class="add-btn" onclick="addItem()">+ 패킹리스트에 추가</button>
+  </div>
+
+  <div class="summary-section">
+    <div class="summary-header">
+      <div style="display:flex;align-items:center;gap:10px">
+        <h2>패킹리스트</h2>
+        <span class="count-badge" id="item-count">0건</span>
+      </div>
+      <div class="action-btns">
+        <button class="btn-outline" onclick="exportCSV()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          CSV
+        </button>
+        <button class="btn-green" onclick="exportExcel()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          엑셀 다운로드
+        </button>
+        <button class="btn-danger-outline" onclick="clearAll()">전체 삭제</button>
+      </div>
+    </div>
+    <div id="list-body">
+      <div class="empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 13h4"/></svg>
+        <p>아직 추가된 항목이 없어요<br>위에서 항목을 선택하고 추가해보세요</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 상품 데이터베이스 (엑셀에서 추출) ──────────────────────────
+const DB = [{"code":"S13130","name":"new 스마트 캐리어","option":"[원터치 그린-20인치]","barcode":"R54S01GR20"},{"code":"S13131","name":"new 스마트 캐리어","option":"[원터치 그린-26인치]","barcode":"R54S01GR26"},{"code":"S13128","name":"new 스마트 캐리어","option":"[원터치 아이보리-20인치]","barcode":"R54S01IV20"},{"code":"S13129","name":"new 스마트 캐리어","option":"[원터치 아이보리-26인치]","barcode":"R54S01IV26"},{"code":"S00300","name":"구름쿠션 캐리어 바퀴커버","option":"그레이 8개 세트","barcode":"R3S94GY0"},{"code":"S00301","name":"구름쿠션 캐리어 바퀴커버","option":"블랙 8개 세트","barcode":"R3S94BK0"},{"code":"S00302","name":"구름쿠션 캐리어 바퀴커버","option":"블루 8개 세트","barcode":"R3S94BL0"},{"code":"S00299","name":"구름쿠션 캐리어 바퀴커버","option":"옐로우(오렌지) 8개 세트","barcode":"R3S94OR0"},{"code":"S00304","name":"구름쿠션 캐리어 바퀴커버","option":"퍼플 8개 세트","barcode":"R3S94PU0"},{"code":"S00303","name":"구름쿠션 캐리어 바퀴커버","option":"핑크 8개 세트","barcode":"R3S94PK0"},{"code":"S12891","name":"더블릿 캐리어","option":"[블랙-20인치]","barcode":"R5S02BK20"},{"code":"S12890","name":"더블릿 캐리어","option":"[핑크-20인치]","barcode":"R5S02PK20"},{"code":"S12889","name":"더블릿 캐리어","option":"[화이트-20인치]","barcode":"R5S02OW20"},{"code":"S13181","name":"똑똑떡뻥 1봉","option":"1봉","barcode":"D64R001BO"},{"code":"S13194","name":"똑똑떡뻥 3봉","option":"3봉","barcode":"D64R001B3"},{"code":"S13196","name":"똑똑떡뻥 4봉","option":"4봉","barcode":"D64R001B4"},{"code":"S13200","name":"똑똑떡뻥 50봉(1박스)","option":"50봉 (1박스)","barcode":"D64R001BB"},{"code":"S13198","name":"똑똑떡뻥 7봉","option":"7봉","barcode":"D64R001B7"},{"code":"S00149","name":"라이딩 캐리어","option":"블루- 20인치","barcode":"R3S09BL20"},{"code":"S00147","name":"라이딩 캐리어","option":"옐로우- 20인치","barcode":"R3S09YE20"},{"code":"S00148","name":"라이딩 캐리어","option":"핑크- 20인치","barcode":"R3S09PK20"},{"code":"12968","name":"라이딩캐리어1 (할인가)","option":"옐로우","barcode":"GRWN12968"},{"code":"S13209","name":"러닝 손목밴드","option":"그레이","barcode":"T26AA01WB600GY"},{"code":"S13208","name":"러닝 손목밴드","option":"블랙","barcode":"T26AA01WB600BK"},{"code":"S13163","name":"러닝 장갑","option":"M","barcode":"T25WT01UB500BK00M"},{"code":"S13164","name":"러닝 장갑","option":"L","barcode":"T25WT01UB500BK00L"},{"code":"S13206","name":"러닝 헤어밴드","option":"그레이","barcode":"T26AH01WB600GY"},{"code":"S13205","name":"러닝 헤어밴드","option":"블랙","barcode":"T26AH01WB600BK"},{"code":"S13203","name":"러닝조끼","option":"그레이","barcode":"T26AV01UB600GY"},{"code":"S13202","name":"러닝조끼","option":"블랙","barcode":"T26AV01UB600BK"},{"code":"S13253","name":"러닝조끼 지퍼형","option":"블랙S","barcode":"T26AV02UB600BKS"},{"code":"S13254","name":"러닝조끼 지퍼형","option":"블랙M","barcode":"T26AV02UB600BKM"},{"code":"S13255","name":"러닝조끼 지퍼형","option":"블랙L","barcode":"T26AV02UB600BKL"},{"code":"S00128","name":"마카롱 캐리어","option":"민트-20인치","barcode":"R3S08MT20"},{"code":"S00129","name":"마카롱 캐리어","option":"민트-24인치","barcode":"R3S08MT24"},{"code":"S00126","name":"마카롱 캐리어","option":"크림-20인치","barcode":"R3S08CR20"},{"code":"S00127","name":"마카롱 캐리어","option":"크림-24인치","barcode":"R3S08CR24"},{"code":"S13217","name":"모노폴 캐리어","option":"스페이스그레이-20인치","barcode":"R26AC01UB600GY020"},{"code":"S13218","name":"모노폴 캐리어","option":"스페이스그레이-24인치","barcode":"R26AC01UB600GY024"},{"code":"S13219","name":"모노폴 캐리어","option":"스페이스그레이-28인치","barcode":"R26AC01UB600GY028"},{"code":"S13211","name":"모노폴 캐리어","option":"밀크베이지-20인치","barcode":"R26AC01UB600BE020"},{"code":"S13212","name":"모노폴 캐리어","option":"밀크베이지-24인치","barcode":"R26AC01UB600BE024"},{"code":"S13213","name":"모노폴 캐리어","option":"밀크베이지-28인치","barcode":"R26AC01UB600BE028"},{"code":"S13220","name":"모노폴 캐리어","option":"클래식블랙-20인치","barcode":"R26AC01UB600BK020"},{"code":"S13221","name":"모노폴 캐리어","option":"클래식블랙-24인치","barcode":"R26AC01UB600BK024"},{"code":"S13222","name":"모노폴 캐리어","option":"클래식블랙-28인치","barcode":"R26AC01UB600BK028"},{"code":"S13214","name":"모노폴 캐리어","option":"아이리스블루-20인치","barcode":"R26AC01UB600BL020"},{"code":"S13215","name":"모노폴 캐리어","option":"아이리스블루-24인치","barcode":"R26AC01UB600BL024"},{"code":"S13216","name":"모노폴 캐리어","option":"아이리스블루-28인치","barcode":"R26AC01UB600BL028"},{"code":"S13230","name":"모먼트 캐리어","option":"그레이-20인치","barcode":"R26AC02UB600GY020"},{"code":"S13231","name":"모먼트 캐리어","option":"그레이-24인치","barcode":"R26AC02UB600GY024"},{"code":"S13232","name":"모먼트 캐리어","option":"그레이-28인치","barcode":"R26AC02UB600GY028"},{"code":"S13224","name":"모먼트 캐리어","option":"베이지-20인치","barcode":"R26AC02UB600BE020"},{"code":"S13225","name":"모먼트 캐리어","option":"베이지-24인치","barcode":"R26AC02UB600BE024"},{"code":"S13226","name":"모먼트 캐리어","option":"베이지-28인치","barcode":"R26AC02UB600BE028"},{"code":"S13233","name":"모먼트 캐리어","option":"블랙-20인치","barcode":"R26AC02UB600BK020"},{"code":"S13234","name":"모먼트 캐리어","option":"블랙-24인치","barcode":"R26AC02UB600BK024"},{"code":"S13235","name":"모먼트 캐리어","option":"블랙-28인치","barcode":"R26AC02UB600BK028"},{"code":"S13227","name":"모먼트 캐리어","option":"블루-20인치","barcode":"R26AC02UB600BL020"},{"code":"S13228","name":"모먼트 캐리어","option":"블루-24인치","barcode":"R26AC02UB600BL024"},{"code":"S13229","name":"모먼트 캐리어","option":"블루-28인치","barcode":"R26AC02UB600BL028"},{"code":"S00255","name":"무지개 캐리어 벨트","option":"무지개- free","barcode":"R3S95MT0"},{"code":"S10844","name":"밀크캐리어","option":"[민트-20인치]","barcode":"GRWNS10844"},{"code":"S10838","name":"밀크캐리어","option":"[옐로우-20인치]","barcode":"GRWNS10838"},{"code":"S10840","name":"밀크캐리어","option":"[핑크-20인치]","barcode":"GRWNS10840"},{"code":"S10842","name":"밀크캐리어","option":"[화이트-20인치]","barcode":"GRWNS10842"},{"code":"S12439","name":"베베롤 캐리어","option":"[그린-20인치]","barcode":"GRWNS12439"},{"code":"S12440","name":"베베롤 캐리어","option":"[실버-20인치]","barcode":"GRWNS12440"},{"code":"S12438","name":"베베롤 캐리어","option":"[핑크-20인치]","barcode":"GRWNS12438"},{"code":"S12437","name":"베베롤 캐리어","option":"[화이트-20인치]","barcode":"GRWNS12437"},{"code":"S12879","name":"볼트로 캐리어","option":"[다크그레이-20인치]","barcode":"R5S01GY20"},{"code":"S12881","name":"볼트로 캐리어","option":"[블랙-20인치]","barcode":"R5S01BK20"},{"code":"S12880","name":"볼트로 캐리어","option":"[실버-20인치]","barcode":"R5S01SV20"},{"code":"S12882","name":"볼트로 캐리어","option":"[핑크-20인치]","barcode":"R5S01PK20"},{"code":"S12878","name":"볼트로 캐리어","option":"[화이트-20인치]","barcode":"R5S01OW20"},{"code":"S11434","name":"브리즈 캐리어","option":"[그레이(측면오픈)-20인치]","barcode":"GRWNS11434"},{"code":"S11433","name":"브리즈 캐리어","option":"[라벤더블루(측면오픈)-20인치]","barcode":"GRWNS11433"},{"code":"S11431","name":"브리즈 캐리어","option":"[로즈핑크(측면오픈)-20인치]","barcode":"GRWNS11431"},{"code":"S11432","name":"브리즈 캐리어","option":"[아미그린(측면오픈)-20인치]","barcode":"GRWNS11432"},{"code":"S10026","name":"브리즈 캐리어","option":"[그린(상하오픈)-20인치]","barcode":"GRWNS10026"},{"code":"S10024","name":"브리즈 캐리어","option":"[블랙(측면오픈)-20인치]","barcode":"GRWNS10024"},{"code":"S10023","name":"브리즈 캐리어","option":"[아이보리(측면오픈)-20인치]","barcode":"GRWNS10023"},{"code":"S10025","name":"브리즈 캐리어","option":"[핑크(상하오픈)-20인치]","barcode":"GRWNS10025"},{"code":"S00267","name":"스마트 캐리어 B19","option":"지퍼형 그레이-20인치","barcode":"R3S01ZGY20"},{"code":"S00273","name":"스마트 캐리어 B19","option":"지퍼형 그레이-22인치","barcode":"R3S01ZGY22"},{"code":"S00277","name":"스마트 캐리어 B19","option":"지퍼형 그레이-24인치","barcode":"R3S01ZGY24"},{"code":"S00282","name":"스마트 캐리어 B19","option":"지퍼형 그레이-26인치","barcode":"R3S01ZGY26"},{"code":"S00264","name":"스마트 캐리어 B19","option":"지퍼형 그린-20인치","barcode":"R3S01ZGR20"},{"code":"S00270","name":"스마트 캐리어 B19","option":"지퍼형 그린-22인치","barcode":"R3S01ZGR22"},{"code":"S00268","name":"스마트 캐리어 B19","option":"지퍼형 그린-24인치","barcode":"R3S01ZGR24"},{"code":"S00279","name":"스마트 캐리어 B19","option":"지퍼형 그린-26인치","barcode":"R3S01ZGR26"},{"code":"S00266","name":"스마트 캐리어 B19","option":"지퍼형 라이트옐로우-20인치","barcode":"R3S01ZLY20"},{"code":"S00272","name":"스마트 캐리어 B19","option":"지퍼형 라이트옐로우-22인치","barcode":"R3S01ZLY22"},{"code":"S00276","name":"스마트 캐리어 B19","option":"지퍼형 라이트옐로우-24인치","barcode":"R3S01ZLY24"},{"code":"S00281","name":"스마트 캐리어 B19","option":"지퍼형 라이트옐로우-26인치","barcode":"R3S01ZLY26"},{"code":"S00263","name":"스마트 캐리어 B19","option":"지퍼형 블랙-20인치","barcode":"R3S01ZBK20"},{"code":"S00269","name":"스마트 캐리어 B19","option":"지퍼형 블랙-22인치","barcode":"R3S01ZBK22"},{"code":"S00274","name":"스마트 캐리어 B19","option":"지퍼형 블랙-24인치","barcode":"R3S01ZBK24"},{"code":"S00278","name":"스마트 캐리어 B19","option":"지퍼형 블랙-26인치","barcode":"R3S01ZBK26"},{"code":"S00265","name":"스마트 캐리어 B19","option":"지퍼형 아이보리-20인치","barcode":"R3S01ZIV20"},{"code":"S00271","name":"스마트 캐리어 B19","option":"지퍼형 아이보리-22인치","barcode":"R3S01ZIV22"},{"code":"S00275","name":"스마트 캐리어 B19","option":"지퍼형 아이보리-24인치","barcode":"R3S01ZIV24"},{"code":"S00280","name":"스마트 캐리어 B19","option":"지퍼형 아이보리-26인치","barcode":"R3S01ZIV26"},{"code":"S00032","name":"스마트 캐리어 B19","option":"원터치형 그레이-20인치","barcode":"R3S01GY20"},{"code":"S00033","name":"스마트 캐리어 B19","option":"원터치형 그레이-22인치","barcode":"R3S01GY22"},{"code":"S00034","name":"스마트 캐리어 B19","option":"원터치형 그레이-24인치","barcode":"R3S01GY24"},{"code":"S00035","name":"스마트 캐리어 B19","option":"원터치형 그레이-26인치","barcode":"R3S01GY26"},{"code":"S00028","name":"스마트 캐리어 B19","option":"원터치형 그린-20인치","barcode":"R3S01GR20"},{"code":"S00029","name":"스마트 캐리어 B19","option":"원터치형 그린-22인치","barcode":"R3S01GR22"},{"code":"S00030","name":"스마트 캐리어 B19","option":"원터치형 그린-24인치","barcode":"R3S01GR24"},{"code":"S00031","name":"스마트 캐리어 B19","option":"원터치형 그린-26인치","barcode":"R3S01GR26"},{"code":"S00016","name":"스마트 캐리어 B19","option":"원터치형 블랙-20인치","barcode":"R3S01BK20"},{"code":"S00017","name":"스마트 캐리어 B19","option":"원터치형 블랙-22인치","barcode":"R3S01BK22"},{"code":"S00018","name":"스마트 캐리어 B19","option":"원터치형 블랙-24인치","barcode":"R3S01BK24"},{"code":"S00019","name":"스마트 캐리어 B19","option":"원터치형 블랙-26인치","barcode":"R3S01BK26"},{"code":"S00024","name":"스마트 캐리어 B19","option":"원터치형 스카이블루-20인치","barcode":"R3S01SK20"},{"code":"S00025","name":"스마트 캐리어 B19","option":"원터치형 스카이블루-22인치","barcode":"R3S01SK22"},{"code":"S00026","name":"스마트 캐리어 B19","option":"원터치형 스카이블루-24인치","barcode":"R3S01SK24"},{"code":"S00027","name":"스마트 캐리어 B19","option":"원터치형 스카이블루-26인치","barcode":"R3S01SK26"},{"code":"S00020","name":"스마트 캐리어 B19","option":"원터치형 라이트옐로우-20인치","barcode":"R3S01LY20"},{"code":"S00021","name":"스마트 캐리어 B19","option":"원터치형 라이트옐로우-22인치","barcode":"R3S01LY22"},{"code":"S00022","name":"스마트 캐리어 B19","option":"원터치형 라이트옐로우-24인치","barcode":"R3S01LY24"},{"code":"S00023","name":"스마트 캐리어 B19","option":"원터치형 라이트옐로우-26인치","barcode":"R3S01LY26"},{"code":"S00012","name":"스마트 캐리어 B19","option":"원터치형 아이보리-20인치","barcode":"R3S01IV20"},{"code":"S00013","name":"스마트 캐리어 B19","option":"원터치형 아이보리-22인치","barcode":"R3S01IV22"},{"code":"S00014","name":"스마트 캐리어 B19","option":"원터치형 아이보리-24인치","barcode":"R3S01IV24"},{"code":"S00015","name":"스마트 캐리어 B19","option":"원터치형 아이보리-26인치","barcode":"R3S01IV26"},{"code":"S00162","name":"스마트 캐리어 바퀴(수선용)","option":"[블랙]","barcode":"GRWNS00162"},{"code":"S00163","name":"스마트 캐리어 바퀴(수선용)","option":"[스카이블루]","barcode":"GRWNS00163"},{"code":"S00160","name":"스마트 캐리어 바퀴(수선용)","option":"그레이/블랙","barcode":"R3S98GB0"},{"code":"S00161","name":"스마트 캐리어 바퀴(수선용)","option":"아이보리/라이트옐로우/스카이블루","barcode":"R3S98MT0"},{"code":"S00103","name":"스마트 캐리어 바퀴(수선용)","option":"그린","barcode":"R3S98GR0"},{"code":"S00104","name":"스마트 캐리어 바퀴(수선용)","option":"[아이보리]","barcode":"R3S98IV0"},{"code":"S00166","name":"스마트캐리어 USB부품(구형)","option":"라이트옐로우/아이보리/스카이블루","barcode":"R3S97MT0"},{"code":"S00167","name":"스마트캐리어 USB부품(구형)","option":"[ 민트]","barcode":"GRWNS00167"},{"code":"S00165","name":"스마트캐리어 USB부품(구형)","option":"[아이보리]","barcode":"GRWNS00165"},{"code":"00176","name":"스마트캐리어 락지퍼(AS)","option":"","barcode":"R3S97AS0"},{"code":"S12899","name":"스파클링 캐리어","option":"그레이-20인치","barcode":"R5S03GY20"},{"code":"S12898","name":"스파클링 캐리어","option":"밀크화이트-20인치","barcode":"R5S03OW20"},{"code":"S12991","name":"스파클링 캐리어","option":"밀크화이트-24인치","barcode":"R5S03OW24"},{"code":"S12992","name":"스파클링 캐리어","option":"밀크화이트-26인치","barcode":"R5S03OW26"},{"code":"S12897","name":"스파클링 캐리어","option":"아쿠아그린-20인치","barcode":"R5S03GN20"},{"code":"S12989","name":"스파클링 캐리어","option":"아쿠아그린-24인치","barcode":"R5S03GN24"},{"code":"S12990","name":"스파클링 캐리어","option":"아쿠아그린-26인치","barcode":"R5S03GN26"},{"code":"S12900","name":"스파클링 캐리어","option":"크리스탈블랙-20인치","barcode":"R5S03BK20"},{"code":"S13236","name":"스파클링 캐리어","option":"크리스탈블랙-24인치","barcode":"R5S03BK24"},{"code":"S00116","name":"아이스크림 캐리어","option":"그레이-20인치","barcode":"R3S05GY20"},{"code":"S00117","name":"아이스크림 캐리어","option":"그레이-24인치","barcode":"R3S05GY24"},{"code":"S00108","name":"아이스크림 캐리어","option":"그린-20인치","barcode":"R3S05GR20"},{"code":"S00109","name":"아이스크림 캐리어","option":"그린-24인치","barcode":"R3S05GR24"},{"code":"S00114","name":"아이스크림 캐리어","option":"라벤더-20인치","barcode":"R3S05LA20"},{"code":"S00115","name":"아이스크림 캐리어","option":"라벤더-24인치","barcode":"R3S05LA24"},{"code":"S00106","name":"아이스크림 캐리어","option":"아이보리-20인치","barcode":"R3S05IV20"},{"code":"S00107","name":"아이스크림 캐리어","option":"아이보리-24인치","barcode":"R3S05IV24"},{"code":"S00112","name":"아이스크림 캐리어","option":"옐로우-20인치","barcode":"R3S05YE20"},{"code":"S00113","name":"아이스크림 캐리어","option":"옐로우-24인치","barcode":"R3S05YE24"},{"code":"S00110","name":"아이스크림 캐리어","option":"핑크-20인치","barcode":"R3S05PK20"},{"code":"S00111","name":"아이스크림 캐리어","option":"핑크-24인치","barcode":"R3S05PK24"},{"code":"S09884","name":"엘리트 캐리어 압축 파우치 세트","option":"[그레이]","barcode":"R3P93EGY0"},{"code":"S09882","name":"엘리트 캐리어 압축 파우치 세트","option":"[베이지]","barcode":"R3P93EBE0"},{"code":"S09885","name":"엘리트 캐리어 압축 파우치 세트","option":"[블루]","barcode":"R3P93EBL0"},{"code":"S09883","name":"엘리트 캐리어 압축 파우치 세트","option":"[핑크]","barcode":"R3P93EPK0"},{"code":"S11513","name":"오프너 스탠다드형 캐리어 비투비 납품건","option":"스탠다드형 다크그린-20인치","barcode":"GRWNS11513"},{"code":"S00259","name":"오프너 캐리어 8026","option":"컵홀더형 다크그린-20인치","barcode":"R3S14CDG20"},{"code":"S00292","name":"오프너 캐리어 8026","option":"컵홀더형 다크그린-22인치","barcode":"R3S14CDG22"},{"code":"S00293","name":"오프너 캐리어 8026","option":"컵홀더형 다크그린-24인치","barcode":"R3S14CDG24"},{"code":"S00294","name":"오프너 캐리어 8026","option":"컵홀더형 다크그린-26인치","barcode":"R3S14CDG26"},{"code":"S00260","name":"오프너 캐리어 8026","option":"컵홀더형 레드-20인치","barcode":"R3S14CRE20"},{"code":"S00286","name":"오프너 캐리어 8026","option":"컵홀더형 레드-22인치","barcode":"R3S14CRE22"},{"code":"S00287","name":"오프너 캐리어 8026","option":"컵홀더형 레드-24인치","barcode":"R3S14CRE24"},{"code":"S00288","name":"오프너 캐리어 8026","option":"컵홀더형 레드-26인치","barcode":"R3S14CRE26"},{"code":"S00256","name":"오프너 캐리어 8026","option":"컵홀더형 블랙-20인치","barcode":"R3S14CBK20"},{"code":"S00295","name":"오프너 캐리어 8026","option":"컵홀더형 블랙-22인치","barcode":"R3S14CBK22"},{"code":"S00296","name":"오프너 캐리어 8026","option":"컵홀더형 블랙-24인치","barcode":"R3S14CBK24"},{"code":"S00297","name":"오프너 캐리어 8026","option":"컵홀더형 블랙-26인치","barcode":"R3S14CBK26"},{"code":"S00258","name":"오프너 캐리어 8026","option":"컵홀더형 실버-20인치","barcode":"R3S14CSV20"},{"code":"S00289","name":"오프너 캐리어 8026","option":"컵홀더형 실버-22인치","barcode":"R3S14CSV22"},{"code":"S00290","name":"오프너 캐리어 8026","option":"컵홀더형 실버-24인치","barcode":"R3S14CSV24"},{"code":"S00291","name":"오프너 캐리어 8026","option":"컵홀더형 실버-26인치","barcode":"R3S14CSV26"},{"code":"S00257","name":"오프너 캐리어 8026","option":"컵홀더형 아이보리-20인치","barcode":"R3S14CIV20"},{"code":"S00283","name":"오프너 캐리어 8026","option":"컵홀더형 아이보리-22인치","barcode":"R3S14CIV22"},{"code":"S00284","name":"오프너 캐리어 8026","option":"컵홀더형 아이보리-24인치","barcode":"R3S14CIV24"},{"code":"S00285","name":"오프너 캐리어 8026","option":"컵홀더형 아이보리-26인치","barcode":"R3S14CIV26"},{"code":"S11538","name":"오프너 캐리어 8026","option":"확장형 다크그린-20인치","barcode":"GRWNS11538"},{"code":"S00261","name":"오프너 캐리어 8026","option":"확장형 블랙-20인치","barcode":"R3S15EBK20"},{"code":"S00262","name":"오프너 캐리어 8026","option":"확장형 아이보리-20인치","barcode":"R3S15EIV20"},{"code":"S00070","name":"오프너 캐리어 8026","option":"스탠다드형 다크그린-20인치","barcode":"R3S02DG20"},{"code":"S00049","name":"오프너 캐리어 8026","option":"스탠다드형 블랙-18인치","barcode":"R3S02BK18"},{"code":"S00050","name":"오프너 캐리어 8026","option":"스탠다드형 블랙-20인치","barcode":"R3S02BK20"},{"code":"S00037","name":"오프너 캐리어 8026","option":"스탠다드형 아이보리-18인치","barcode":"R3S02IV18"},{"code":"S00038","name":"오프너 캐리어 8026","option":"스탠다드형 아이보리-20인치","barcode":"R3S02IV20"},{"code":"S00140","name":"우리두리 세트 캐리어","option":"레몬","barcode":"R3S06LE20"},{"code":"S00145","name":"우리두리 세트 캐리어","option":"블랙","barcode":"R3S06BK20"},{"code":"S00143","name":"우리두리 세트 캐리어","option":"아보카도","barcode":"R3S06AV20"},{"code":"S00141","name":"우리두리 세트 캐리어","option":"아이보리","barcode":"R3S06IV20"},{"code":"S00142","name":"우리두리 세트 캐리어","option":"아이스블루","barcode":"R3S06IB20"},{"code":"S00144","name":"우리두리 세트 캐리어","option":"인디핑크","barcode":"R3S06IP20"},{"code":"S11573","name":"워터락 캐리어","option":"[다크그린-20인치]","barcode":"GRWNS11573"},{"code":"S11574","name":"워터락 캐리어","option":"[다크그린-24인치]","barcode":"GRWNS11574"},{"code":"S11575","name":"워터락 캐리어","option":"[다크그린-26인치]","barcode":"GRWNS11575"},{"code":"S11576","name":"워터락 캐리어","option":"[다크그린-28인치]","barcode":"GRWNS11576"},{"code":"S11577","name":"워터락 캐리어","option":"[다크그린-30인치]","barcode":"GRWNS11577"},{"code":"S11553","name":"워터락 캐리어","option":"[민트-20인치]","barcode":"GRWNS11553"},{"code":"S11554","name":"워터락 캐리어","option":"[민트-24인치]","barcode":"GRWNS11554"},{"code":"S11555","name":"워터락 캐리어","option":"[민트-26인치]","barcode":"GRWNS11555"},{"code":"S11556","name":"워터락 캐리어","option":"[민트-28인치]","barcode":"GRWNS11556"},{"code":"S11557","name":"워터락 캐리어","option":"[민트-30인치]","barcode":"GRWNS11557"},{"code":"S11578","name":"워터락 캐리어","option":"[밀크베이지-20인치]","barcode":"GRWNS11578"},{"code":"S11579","name":"워터락 캐리어","option":"[밀크베이지-24인치]","barcode":"GRWNS11579"},{"code":"S11580","name":"워터락 캐리어","option":"[밀크베이지-26인치]","barcode":"GRWNS11580"},{"code":"S11581","name":"워터락 캐리어","option":"[밀크베이지-28인치]","barcode":"GRWNS11581"},{"code":"S11582","name":"워터락 캐리어","option":"[밀크베이지-30인치]","barcode":"GRWNS11582"},{"code":"S11568","name":"워터락 캐리어","option":"[바이올렛-20인치]","barcode":"GRWNS11568"},{"code":"S11569","name":"워터락 캐리어","option":"[바이올렛-24인치]","barcode":"GRWNS11569"},{"code":"S11570","name":"워터락 캐리어","option":"[바이올렛-26인치]","barcode":"GRWNS11570"},{"code":"S11571","name":"워터락 캐리어","option":"[바이올렛-28인치]","barcode":"GRWNS11571"},{"code":"S11572","name":"워터락 캐리어","option":"[바이올렛-30인치]","barcode":"GRWNS11572"},{"code":"S11563","name":"워터락 캐리어","option":"[베이비핑크-20인치]","barcode":"GRWNS11563"},{"code":"S11564","name":"워터락 캐리어","option":"[베이비핑크-24인치]","barcode":"GRWNS11564"},{"code":"S11565","name":"워터락 캐리어","option":"[베이비핑크-26인치]","barcode":"GRWNS11565"},{"code":"S11566","name":"워터락 캐리어","option":"[베이비핑크-28인치]","barcode":"GRWNS11566"},{"code":"S11567","name":"워터락 캐리어","option":"[베이비핑크-30인치]","barcode":"GRWNS11567"},{"code":"S11583","name":"워터락 캐리어","option":"[블랙-20인치]","barcode":"GRWNS11583"},{"code":"S11584","name":"워터락 캐리어","option":"[블랙-24인치]","barcode":"GRWNS11584"},{"code":"S11585","name":"워터락 캐리어","option":"[블랙-26인치]","barcode":"GRWNS11585"},{"code":"S11586","name":"워터락 캐리어","option":"[블랙-28인치]","barcode":"GRWNS11586"},{"code":"S11587","name":"워터락 캐리어","option":"[블랙-30인치]","barcode":"GRWNS11587"},{"code":"S11558","name":"워터락 캐리어","option":"[화이트-20인치]","barcode":"GRWNS11558"},{"code":"S11559","name":"워터락 캐리어","option":"[화이트-24인치]","barcode":"GRWNS11559"},{"code":"S11560","name":"워터락 캐리어","option":"[화이트-26인치]","barcode":"GRWNS11560"},{"code":"S11561","name":"워터락 캐리어","option":"[화이트-28인치]","barcode":"GRWNS11561"},{"code":"S11562","name":"워터락 캐리어","option":"[화이트-30인치]","barcode":"GRWNS11562"},{"code":"S09879","name":"이지캐리 캐리어 파우치백 세트","option":"[그레이]","barcode":"R3P93CGY0"},{"code":"S09876","name":"이지캐리 캐리어 파우치백 세트","option":"[네이비]","barcode":"R3P93CNA0"},{"code":"S09878","name":"이지캐리 캐리어 파우치백 세트","option":"[베이지]","barcode":"R3P93CBE0"},{"code":"S09877","name":"이지캐리 캐리어 파우치백 세트","option":"[블랙]","barcode":"R3P93CBK0"},{"code":"S09880","name":"이지캐리 캐리어 파우치백 세트","option":"[블루]","barcode":"R3P93CBL0"},{"code":"S09875","name":"이지캐리 캐리어 파우치백 세트","option":"[핑크]","barcode":"R3P93CPK0"},{"code":"S12912","name":"인딥 캐리어","option":"그린-20인치","barcode":"R5S04GN20"},{"code":"S13239","name":"인딥 캐리어","option":"라이트옐로우-20인치","barcode":"R5S04YE20"},{"code":"S13240","name":"인딥 캐리어","option":"라이트옐로우-24인치","barcode":"R5S04YE24"},{"code":"S12908","name":"인딥 캐리어","option":"블랙-20인치","barcode":"R5S04BK20"},{"code":"S12911","name":"인딥 캐리어","option":"아이리스블루-20인치","barcode":"R5S04BL20"},{"code":"S12994","name":"인딥 캐리어","option":"아이리스블루-24인치","barcode":"R5S04BL24"},{"code":"S12910","name":"인딥 캐리어","option":"어반그레이-20인치","barcode":"R5S04GY20"},{"code":"S12993","name":"인딥 캐리어","option":"어반그레이-24인치","barcode":"R5S04GY24"},{"code":"S12907","name":"인딥 캐리어","option":"화이트-20인치","barcode":"R5S04OW20"},{"code":"S12219","name":"젤리팝 캐리어","option":"[핑크-20인치]","barcode":"GRWNS12219"},{"code":"S12220","name":"젤리팝 캐리어","option":"[민트-20인치]","barcode":"GRWNS12220"},{"code":"S12982","name":"조랑말 타는 캐리어","option":"[1차샘플(핑크)-20인치]","barcode":"GRWNS12982"},{"code":"S12984","name":"조랑말 타는 캐리어","option":"[2차샘플(민트)-20인치]","barcode":"GRWNS12984"},{"code":"S12983","name":"조랑말 타는 캐리어","option":"[2차샘플(핑크)-20인치]","barcode":"GRWNS12983"},{"code":"S12978","name":"조랑말 타는 캐리어","option":"[민트-20인치]","barcode":"GRWNS12978"},{"code":"S12981","name":"조랑말 타는 캐리어","option":"[블랙-20인치]","barcode":"GRWNS12981"},{"code":"S12979","name":"조랑말 타는 캐리어","option":"[블루-20인치]","barcode":"GRWNS12979"},{"code":"S12980","name":"조랑말 타는 캐리어","option":"[스카이블루-20인치]","barcode":"GRWNS12980"},{"code":"S12976","name":"조랑말 타는 캐리어","option":"[아이보리-20인치]","barcode":"GRWNS12976"},{"code":"S12977","name":"조랑말 타는 캐리어","option":"[핑크-20인치]","barcode":"GRWNS12977"},{"code":"S00224","name":"체이싱 캐리어","option":"레드- 24인치","barcode":"R3S12RE24"},{"code":"S13078","name":"캐리어 균일가 40,000원","option":"캐리어 균일가1","barcode":"GRWNS13078"},{"code":"S13080","name":"캐리어 균일가 50,000원","option":"캐리어 균일가2","barcode":"GRWNS13080"},{"code":"S11291","name":"퀘스트 캐리어","option":"블루화이트-22인치","barcode":"GRWNS11291"},{"code":"S11282","name":"퀘스트 캐리어","option":"스카이블루-22인치","barcode":"GRWNS11282"},{"code":"S11283","name":"퀘스트 캐리어","option":"스카이블루-26인치","barcode":"GRWNS11283"},{"code":"S11294","name":"퀘스트 캐리어","option":"옐로우블랙-22인치","barcode":"GRWNS11294"},{"code":"S11279","name":"퀘스트 캐리어","option":"핑크-22인치","barcode":"GRWNS11279"},{"code":"S11285","name":"퀘스트 캐리어","option":"화이트블랙-22인치","barcode":"GRWNS11285"},{"code":"S11288","name":"퀘스트 캐리어","option":"화이트핑크-22인치","barcode":"GRWNS11288"},{"code":"S11290","name":"퀘스트 캐리어","option":"화이트핑크-30인치","barcode":"GRWNS11290"},{"code":"S13241","name":"큐보이드 캐리어 2110","option":"건메탈-20인치","barcode":"R3S03GY20"},{"code":"S12686","name":"큐보이드 캐리어 2110","option":"건메탈-28인치","barcode":"R3S03GY28"},{"code":"S12687","name":"큐보이드 캐리어 2110","option":"건메탈-32인치","barcode":"R3S03GY32"},{"code":"S12688","name":"큐보이드 캐리어 2110","option":"건메탈-36인치","barcode":"R3S03GY36"},{"code":"S13242","name":"큐보이드 캐리어 2110","option":"그린-20인치","barcode":"R3S03GR20"},{"code":"S00093","name":"큐보이드 캐리어 2110","option":"그린-28인치","barcode":"R3S03GR28"},{"code":"S00094","name":"큐보이드 캐리어 2110","option":"그린-32인치","barcode":"R3S03GR32"},{"code":"S00095","name":"큐보이드 캐리어 2110","option":"그린-36인치","barcode":"R3S03GR36"},{"code":"S13243","name":"큐보이드 캐리어 2110","option":"라벤더퍼플-20인치","barcode":"R3S03PU20"},{"code":"S11793","name":"큐보이드 캐리어 2110","option":"라벤더퍼플-28인치","barcode":"R3S03PU28"},{"code":"S11794","name":"큐보이드 캐리어 2110","option":"라벤더퍼플-32인치","barcode":"R3S03PU32"},{"code":"S11795","name":"큐보이드 캐리어 2110","option":"라벤더퍼플-36인치","barcode":"R3S03PU36"},{"code":"S13244","name":"큐보이드 캐리어 2110","option":"블랙-20인치","barcode":"R3S03BK20"},{"code":"S00096","name":"큐보이드 캐리어 2110","option":"블랙-28인치","barcode":"R3S03BK28"},{"code":"S00097","name":"큐보이드 캐리어 2110","option":"블랙-32인치","barcode":"R3S03BK32"},{"code":"S00098","name":"큐보이드 캐리어 2110","option":"블랙-36인치","barcode":"R3S03BK36"},{"code":"S13245","name":"큐보이드 캐리어 2110","option":"블루&화이트-20인치","barcode":"R3S03BW20"},{"code":"S00099","name":"큐보이드 캐리어 2110","option":"블루&화이트-28인치","barcode":"R3S03BW28"},{"code":"S00100","name":"큐보이드 캐리어 2110","option":"블루&화이트-32인치","barcode":"R3S03BW32"},{"code":"S00101","name":"큐보이드 캐리어 2110","option":"블루&화이트-36인치","barcode":"R3S03BW36"},{"code":"S13246","name":"큐보이드 캐리어 2110","option":"스카이블루-20인치","barcode":"R3S03SK20"},{"code":"S00090","name":"큐보이드 캐리어 2110","option":"스카이블루-28인치","barcode":"R3S03SK28"},{"code":"S00091","name":"큐보이드 캐리어 2110","option":"스카이블루-32인치","barcode":"R3S03SK32"},{"code":"S00092","name":"큐보이드 캐리어 2110","option":"스카이블루-36인치","barcode":"R3S03SK36"},{"code":"S13247","name":"큐보이드 캐리어 2110","option":"핑크-20인치","barcode":"R3S03PK20"},{"code":"S00087","name":"큐보이드 캐리어 2110","option":"핑크-28인치","barcode":"R3S03PK28"},{"code":"S00088","name":"큐보이드 캐리어 2110","option":"핑크-32인치","barcode":"R3S03PK32"},{"code":"S00089","name":"큐보이드 캐리어 2110","option":"핑크-36인치","barcode":"R3S03PK36"},{"code":"S13248","name":"큐보이드 캐리어 2110","option":"화이트-20인치","barcode":"R3S03WH20"},{"code":"S00084","name":"큐보이드 캐리어 2110","option":"화이트-28인치","barcode":"R3S03WH28"},{"code":"S00085","name":"큐보이드 캐리어 2110","option":"화이트-32인치","barcode":"R3S03WH32"},{"code":"S00086","name":"큐보이드 캐리어 2110","option":"화이트-36인치","barcode":"R3S03WH36"},{"code":"S00158","name":"폴딩 캐리어","option":"그레이-20인치","barcode":"R3S11GY20"},{"code":"S00159","name":"폴딩 캐리어","option":"블루-20인치","barcode":"R3S11BL20"},{"code":"S00157","name":"폴딩 캐리어","option":"오렌지-20인치","barcode":"R3S11OR20"},{"code":"S00156","name":"폴딩 캐리어","option":"그린-20인치","barcode":"R3S11GR20"},{"code":"S00155","name":"폴딩 캐리어","option":"아이보리-20인치","barcode":"R3S11IV20"},{"code":"S00153","name":"푸시체어 캐리어","option":"블루-20인치","barcode":"R3S10BL20"},{"code":"S00152","name":"푸시체어 캐리어","option":"핑크-20인치","barcode":"R3S10PK20"},{"code":"S00234","name":"프레임캐리어","option":"골드- 20인치","barcode":"R3S13GO20"},{"code":"S00235","name":"프레임캐리어","option":"골드-24인치","barcode":"R3S13GO24"},{"code":"S00236","name":"프레임캐리어","option":"골드-26인치","barcode":"R3S13GO26"},{"code":"S00237","name":"프레임캐리어","option":"골드-29인치","barcode":"R3S13GO29"},{"code":"S00246","name":"프레임캐리어","option":"그레이- 20인치","barcode":"R3S13GY20"},{"code":"S00247","name":"프레임캐리어","option":"그레이-24인치","barcode":"R3S13GY24"},{"code":"S00248","name":"프레임캐리어","option":"그레이-26인치","barcode":"R3S13GY26"},{"code":"S00249","name":"프레임캐리어","option":"그레이-29인치","barcode":"R3S13GY29"},{"code":"S00238","name":"프레임캐리어","option":"그린- 20인치","barcode":"R3S13GR20"},{"code":"S00239","name":"프레임캐리어","option":"그린-24인치","barcode":"R3S13GR24"},{"code":"S00240","name":"프레임캐리어","option":"그린-26인치","barcode":"R3S13GR26"},{"code":"S00241","name":"프레임캐리어","option":"그린-29인치","barcode":"R3S13GR29"},{"code":"S00242","name":"프레임캐리어","option":"라이트그레이- 20인치","barcode":"R3S13LG20"},{"code":"S00243","name":"프레임캐리어","option":"라이트그레이-24인치","barcode":"R3S13LG24"},{"code":"S00244","name":"프레임캐리어","option":"라이트그레이-26인치","barcode":"R3S13LG26"},{"code":"S00245","name":"프레임캐리어","option":"라이트그레이-29인치","barcode":"R3S13LG29"},{"code":"S00226","name":"프레임캐리어","option":"레드- 20인치","barcode":"R3S13RE20"},{"code":"S00227","name":"프레임캐리어","option":"레드-24인치","barcode":"R3S13RE24"},{"code":"S00228","name":"프레임캐리어","option":"레드-26인치","barcode":"R3S13RE26"},{"code":"S00229","name":"프레임캐리어","option":"레드-29인치","barcode":"R3S13RE29"},{"code":"S00230","name":"프레임캐리어","option":"로즈골드- 20인치","barcode":"R3S13RG20"},{"code":"S00231","name":"프레임캐리어","option":"로즈골드-24인치","barcode":"R3S13RG24"},{"code":"S00232","name":"프레임캐리어","option":"로즈골드-26인치","barcode":"R3S13RG26"},{"code":"S00233","name":"프레임캐리어","option":"로즈골드-29인치","barcode":"R3S13RG29"},{"code":"S00250","name":"프레임캐리어","option":"블랙- 20인치","barcode":"R3S13BK20"},{"code":"S00251","name":"프레임캐리어","option":"블랙-24인치","barcode":"R3S13BK24"},{"code":"S00252","name":"프레임캐리어","option":"블랙-26인치","barcode":"R3S13BK26"},{"code":"S00253","name":"프레임캐리어","option":"블랙-29인치","barcode":"R3S13BK29"},{"code":"S13167","name":"플라이더 캐리어","option":"블루 20인치","barcode":"R25AC01UB500BL020"},{"code":"S13166","name":"플라이더 캐리어","option":"핑크 20인치","barcode":"R25AC01UB500PK020"},{"code":"S11918","name":"롤라루 네임택","option":"롤라루","barcode":"R3S96ORRO"},{"code":"S00204","name":"롤라루 네임택","option":"궁금당근","barcode":"R3S96ORQU"},{"code":"S00217","name":"롤라루 네임택","option":"럭키코인블랙","barcode":"R3S96BKLC"},{"code":"S00216","name":"롤라루 네임택","option":"럭키코인블루","barcode":"R3S96BLLC"},{"code":"S00215","name":"롤라루 네임택","option":"럭키코인핑크","barcode":"R3S96PKLC"},{"code":"S00219","name":"롤라루 네임택","option":"리틀백블루","barcode":"R3S96BLLB"},{"code":"S00218","name":"롤라루 네임택","option":"리틀백핑크","barcode":"R3S96PKLB"},{"code":"S00214","name":"롤라루 네임택","option":"마이백블랙","barcode":"R3S96BKMB"},{"code":"S00213","name":"롤라루 네임택","option":"마이백블루","barcode":"R3S96BLMB"},{"code":"S00212","name":"롤라루 네임택","option":"마이백핑크","barcode":"R3S96PKMB"},{"code":"S00205","name":"롤라루 네임택","option":"바나나트리오","barcode":"R3S96YEBT"},{"code":"S00206","name":"롤라루 네임택","option":"상큼딸기","barcode":"R3S96RERS"},{"code":"S00207","name":"롤라루 네임택","option":"스낵버거","barcode":"R3S96YESB"},{"code":"S00210","name":"롤라루 네임택","option":"스윗아이스","barcode":"R3S96BESW"},{"code":"S00221","name":"롤라루 네임택","option":"잇츠마인블루","barcode":"R3S96BLIM"},{"code":"S00220","name":"롤라루 네임택","option":"잇츠마인핑크","barcode":"R3S96PKIM"},{"code":"S00208","name":"롤라루 네임택","option":"핑크도넛","barcode":"R3S96PKPD"},{"code":"S00209","name":"롤라루 네임택","option":"하트캔디","barcode":"R3S96PKHC"},{"code":"S00211","name":"롤라루 네임택","option":"해피아보카도","barcode":"R3S96GRHA"},{"code":"S00222","name":"롤라루 네임택","option":"헬로판다","barcode":"R3S96WHHP"},{"code":"S13010","name":"롤링프레스 백팩","option":"[에어펌프형-블랙]","barcode":"R53B005BK"},{"code":"S13011","name":"롤링프레스 백팩","option":"[원터치압축-블랙]","barcode":"R53B006BK"},{"code":"S00134","name":"리츠레디백","option":"그린","barcode":"R3S04GR14"},{"code":"S00135","name":"리츠레디백","option":"레드","barcode":"R3S04RE14"},{"code":"S00136","name":"리츠레디백","option":"로즈골드","barcode":"R3S04RG14"},{"code":"S00133","name":"리츠레디백","option":"민트","barcode":"R3S04MT14"},{"code":"S00138","name":"리츠레디백","option":"블랙","barcode":"R3S04BK14"},{"code":"S00137","name":"리츠레디백","option":"실버그레이","barcode":"R3S04SV14"},{"code":"S00131","name":"리츠레디백","option":"화이트","barcode":"R3S04IV14"},{"code":"S00132","name":"리츠레디백","option":"인디핑크","barcode":"R3S04IP14"}];
+
+// ── 선택 옵션 정의 ─────────────────────────────────────────────
+const DATA = {
+  categories: ['캐리어','김똑똑','똑똑떡뻥','러닝상품','바퀴커버','네임택','백백','리츠 레디백'],
+  subs: {
+    '캐리어': ['NEW 스마트','모노풀','모먼트','스파클링','오프너 컵홀더','오프너 스탠다드','확장형','인딥','큐보이드','플라이더'],
+    '러닝상품': ['장갑','손목밴드','헤어밴드','조끼','지퍼형조끼'],
+    '네임택': ['럭키코인','리틀백','마이백','바나나','상큼딸기','스낵버거','스윗아이스','잇츠마인','핑크도넛','하트캔디','해피아보카도','헬로판다'],
+    '백백': ['롤링프레스'],
+    '바퀴커버': null,
+    '김똑똑': null,
+    '똑똑떡뻥': null,
+    '리츠 레디백': null
+  },
+  sizes: {
+    '캐리어': ['18"','20"','22"','24"','26"','28"','30"','32"','36"'],
+    '러닝상품': ['FREE'],
+    '바퀴커버': ['FREE'],
+    '김똑똑': ['FREE'],
+    '똑똑떡뻥': ['FREE'],
+    '네임택': ['FREE'],
+    '백백': ['FREE'],
+    '리츠 레디백': ['FREE']
+  },
+  colors: ['그레이','블루','블랙','옐로우','퍼플','핑크','화이트','아이보리','블루&화이트','건메탈','그린','라벤더퍼플','스카이블루','핑크골드']
+};
+
+const colorMap = {
+  '그레이':'#9ca3af','블루':'#3b82f6','블랙':'#1f2937','옐로우':'#facc15','퍼플':'#a855f7',
+  '핑크':'#ec4899','화이트':'#f3f4f6','아이보리':'#fef3c7','블루&화이트':'linear-gradient(90deg,#3b82f6 50%,#f3f4f6 50%)',
+  '건메탈':'#6b7280','그린':'#22c55e','라벤더퍼플':'#c084fc','스카이블루':'#7dd3fc','핑크골드':'#f9a8d4'
+};
+
+let sel = {category:'', sub:'', color:'', size:''};
+let customOpts = {category:[], sub:{}, color:[], size:{}};
+let items = [];
+let idCounter = 0;
+
+// ── DB 검색 ────────────────────────────────────────────────────
+function normalize(s){ return (s||'').replace(/[\[\]\s\-]/g,'').toLowerCase(); }
+
+function findInDB(category, sub, color, size){
+  const results = [];
+  for(const row of DB){
+    const opt = normalize(row.option);
+    const nm  = normalize(row.name);
+    // 색상 매칭
+    const colorMatch = color ? opt.includes(normalize(color)) : true;
+    // 사이즈 매칭
+    const sizeKey = size && size !== 'FREE' ? size.replace('"','인치') : null;
+    const sizeMatch = sizeKey ? opt.includes(normalize(sizeKey)) : true;
+    // 세부항목 매칭
+    const subMatch = sub ? (opt.includes(normalize(sub)) || nm.includes(normalize(sub))) : true;
+    // 항목 매칭 (상품명 포함)
+    let catMatch = false;
+    if(category === '캐리어') catMatch = nm.includes('캐리어');
+    else if(category === '러닝상품') catMatch = nm.includes('러닝');
+    else if(category === '바퀴커버') catMatch = nm.includes('바퀴커버');
+    else if(category === '김똑똑') catMatch = nm.includes('김똑똑');
+    else if(category === '똑똑떡뻥') catMatch = nm.includes('똑똑떡뻥');
+    else if(category === '네임택') catMatch = nm.includes('네임택');
+    else if(category === '백백') catMatch = nm.includes('롤링프레스') || nm.includes('백팩');
+    else if(category === '리츠 레디백') catMatch = nm.includes('리츠레디백') || nm.includes('리츠 레디백');
+    else catMatch = nm.includes(normalize(category));
+    if(catMatch && colorMatch && sizeMatch && subMatch) results.push(row);
+  }
+  return results;
+}
+
+function updateMatchPreview(){
+  const preview = document.getElementById('match-preview');
+  if(!sel.category){ preview.className='match-preview'; return; }
+  const matches = findInDB(sel.category, sel.sub, sel.color, sel.size);
+  preview.className = 'match-preview show';
+  if(matches.length === 0){
+    preview.innerHTML = '<span class="no-match">⚠ 상품DB에서 일치하는 항목을 찾지 못했습니다. 추가는 가능하지만 상품코드/바코드가 비어있게 됩니다.</span>';
+  } else if(matches.length === 1){
+    preview.innerHTML = `✓ 일치 상품 — <span class="match-code">${matches[0].code}</span> | ${matches[0].name} ${matches[0].option} | 바코드: <span class="match-code">${matches[0].barcode}</span>`;
+  } else {
+    preview.innerHTML = `✓ ${matches.length}개 일치 — ${matches.slice(0,3).map(m=>`<span class="match-code">${m.code}</span>`).join(', ')}${matches.length>3?' …':''}`;
+  }
+}
+
+// ── 렌더링 ─────────────────────────────────────────────────────
+function init(){
+  renderChips('category', DATA.categories.concat(customOpts.category), 'category');
+  renderChips('color', DATA.colors.concat(customOpts.color), 'color');
+}
+
+function renderChips(type, opts, key){
+  const el = document.getElementById('chips-'+type);
+  if(!el) return;
+  el.innerHTML = '';
+  opts.forEach(opt=>{
+    const c = document.createElement('div');
+    c.className = 'chip' + (sel[key]===opt?' selected':'');
+    if(type==='color'){
+      const bg = colorMap[opt];
+      const sw = document.createElement('span');
+      sw.className='color-swatch';
+      if(bg) sw.style.background=bg;
+      c.appendChild(sw);
+    }
+    c.appendChild(document.createTextNode(opt));
+    c.onclick = ()=>selectChip(key, opt);
+    el.appendChild(c);
+  });
+}
+
+function selectChip(key, val){
+  sel[key] = sel[key]===val ? '' : val;
+  if(key==='category'){ sel.sub=''; sel.size=''; updateSubGroup(); updateSizes(); }
+  if(key==='sub') updateSizes();
+  refreshAll();
+  updateMatchPreview();
+}
+
+function updateSubGroup(){
+  const sg = document.getElementById('sub-group');
+  const cat = sel.category;
+  if(!cat || DATA.subs[cat]===null){ sg.style.display='none'; sel.sub=''; return; }
+  const subs = (DATA.subs[cat]||[]).concat(customOpts.sub[cat]||[]);
+  if(!subs.length){ sg.style.display='none'; return; }
+  sg.style.display='block';
+  renderChips('sub', subs, 'sub');
+}
+
+function updateSizes(){
+  const cat = sel.category;
+  const sizes = (DATA.sizes[cat]||['FREE']).concat(customOpts.size[cat]||[]);
+  renderChips('size', sizes, 'size');
+  if(sizes.length===1) sel.size=sizes[0];
+}
+
+function refreshAll(){
+  renderChips('category', DATA.categories.concat(customOpts.category), 'category');
+  updateSubGroup();
+  renderChips('color', DATA.colors.concat(customOpts.color), 'color');
+  const cat = sel.category;
+  const sizes = (DATA.sizes[cat]||['FREE']).concat(customOpts.size[cat]||[]);
+  renderChips('size', sizes, 'size');
+}
+
+function addCustom(type){
+  const inp = document.getElementById('custom-'+type);
+  const val = inp.value.trim(); if(!val) return;
+  if(type==='category'){ if(!customOpts.category.includes(val)) customOpts.category.push(val); }
+  else if(type==='sub'){ const cat=sel.category||'_'; if(!customOpts.sub[cat]) customOpts.sub[cat]=[]; if(!customOpts.sub[cat].includes(val)) customOpts.sub[cat].push(val); }
+  else if(type==='color'){ if(!customOpts.color.includes(val)) customOpts.color.push(val); }
+  else if(type==='size'){ const cat=sel.category||'_'; if(!customOpts.size[cat]) customOpts.size[cat]=[]; if(!customOpts.size[cat].includes(val)) customOpts.size[cat].push(val); }
+  inp.value=''; sel[type]=val; refreshAll(); updateMatchPreview();
+}
+
+function changeQty(d){
+  const inp=document.getElementById('qty-input');
+  inp.value=Math.max(1,parseInt(inp.value||1)+d);
+}
+
+function addItem(){
+  if(!sel.category){showToast('항목을 선택해주세요');return;}
+  const cat=sel.category;
+  const needSub=DATA.subs[cat]!==null&&(DATA.subs[cat]||[]).length>0;
+  if(needSub&&!sel.sub){showToast('세부항목을 선택해주세요');return;}
+  if(!sel.color){showToast('색상을 선택해주세요');return;}
+  if(!sel.size){showToast('사이즈를 선택해주세요');return;}
+  const qty=parseInt(document.getElementById('qty-input').value)||1;
+  const matches=findInDB(cat,sel.sub,sel.color,sel.size);
+  let code='', barcode='';
+  if(matches.length>=1){ code=matches[0].code; barcode=matches[0].barcode; }
+  items.push({id:++idCounter, code, barcode, category:cat, sub:sel.sub||'-', color:sel.color, size:sel.size, qty});
+  renderList();
+  showToast('추가되었습니다 ✓');
+}
+
+function deleteItem(id){ items=items.filter(i=>i.id!==id); renderList(); }
+function clearAll(){ if(!items.length) return; if(confirm('전체 항목을 삭제할까요?')){items=[];renderList();} }
+
+function renderList(){
+  document.getElementById('item-count').textContent=items.length+'건';
+  const body=document.getElementById('list-body');
+  if(!items.length){
+    body.innerHTML='<div class="empty-state"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 13h4"/></svg><p>아직 추가된 항목이 없어요<br>위에서 항목을 선택하고 추가해보세요</p></div>';
+    return;
+  }
+  let html='<table class="list-table"><thead><tr><th>상품코드</th><th>바코드</th><th>#</th><th>항목</th><th>세부항목</th><th>색상</th><th>사이즈</th><th>수량</th><th></th></tr></thead><tbody>';
+  items.forEach((it,i)=>{
+    const sw=colorMap[it.color];
+    const swStyle=sw?(sw.includes('gradient')?`background:${sw}`:`background:${sw}`):'background:#eee';
+    html+=`<tr>
+      <td>${it.code?`<span class="tag tag-code">${it.code}</span>`:'<span class="tag tag-nomatch">미매칭</span>'}</td>
+      <td>${it.barcode?`<span class="tag tag-barcode">${it.barcode}</span>`:'<span style="color:#bbb">-</span>'}</td>
+      <td style="color:#aaa;font-size:12px">${i+1}</td>
+      <td><span class="tag tag-category">${it.category}</span></td>
+      <td>${it.sub!=='-'?`<span class="tag tag-sub">${it.sub}</span>`:'<span style="color:#bbb">-</span>'}</td>
+      <td><span class="color-swatch" style="${swStyle}"></span><span class="tag tag-color">${it.color}</span></td>
+      <td><span class="tag tag-size">${it.size}</span></td>
+      <td style="font-weight:600;color:#1a1a2e">${it.qty}</td>
+      <td><button class="del-btn" onclick="deleteItem(${it.id})">✕</button></td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  body.innerHTML=html;
+}
+
+function exportCSV(){
+  if(!items.length){showToast('항목을 먼저 추가해주세요');return;}
+  const header='상품코드,바코드,번호,항목,세부항목,색상,사이즈,수량\n';
+  const rows=items.map((it,i)=>`${it.code},${it.barcode},${i+1},${it.category},${it.sub},${it.color},${it.size},${it.qty}`).join('\n');
+  const blob=new Blob(['\uFEFF'+header+rows],{type:'text/csv;charset=utf-8'});
+  dlBlob(blob,'패킹리스트.csv');
+  showToast('CSV 다운로드 완료');
+}
+
+function exportExcel(){
+  if(!items.length){showToast('항목을 먼저 추가해주세요');return;}
+  const ws_data=[['상품코드','바코드','번호','항목','세부항목','색상','사이즈','수량']];
+  items.forEach((it,i)=>ws_data.push([it.code,it.barcode,i+1,it.category,it.sub,it.color,it.size,it.qty]));
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(ws_data);
+  ws['!cols']=[{wch:12},{wch:20},{wch:5},{wch:14},{wch:16},{wch:12},{wch:8},{wch:6}];
+  XLSX.utils.book_append_sheet(wb,ws,'패킹리스트');
+  XLSX.writeFile(wb,'패킹리스트.xlsx');
+  showToast('엑셀 다운로드 완료');
+}
+
+function dlBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();}
+
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+init();
+</script>
+</body>
+</html>
